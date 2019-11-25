@@ -28,7 +28,7 @@ async function monitor() {
             // console.log('last', last)
 
             unsub = await api.query.timestamp.now((moment: any) => {
-                // console.log(`The last block has a timestamp of ${moment}, now is ${Date.now()}`)
+                console.log(`The last block has a timestamp of ${moment}, now is ${Date.now()}`)
 
                 // if there was no more block for 30 seconds => notification
                 if (moment < Date.now() - 30*1000) {
