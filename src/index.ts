@@ -6,9 +6,9 @@ import * as mailgun from 'mailgun-js'
 require('dotenv').config()
 
 const SUBSTRATE_NODE_WS = process.env.SUBSTRATE_NODE_WS
-const NOTIFY_SLACK = false
+const NOTIFY_SLACK = process.env.NOTIFY_SLACK === 'true'
 const NOTIFY_SLACK_URL = process.env.NOTIFY_SLACK_URL
-const NOTIFY_EMAIL = true
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL === 'true'
 const NOTIFY_EMAIL_API_KEY = process.env.NOTIFY_EMAIL_API_KEY
 const NOTIFY_EMAIL_DOMAIN = process.env.NOTIFY_EMAIL_DOMAIN
 const NOTIFY_EMAIL_FROM = process.env.NOTIFY_EMAIL_FROM
