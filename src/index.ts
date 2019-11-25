@@ -1,9 +1,20 @@
 // Import
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import fetch from 'node-fetch'
+import * as mailgun from 'mailgun-js'
 
-const SUBSTRATE_NODE_WS = 'ws://127.0.0.1:9944'
-const SLACK_URL = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+require('dotenv').config()
+
+const SUBSTRATE_NODE_WS = process.env.SUBSTRATE_NODE_WS
+const NOTIFY_SLACK = false
+const NOTIFY_SLACK_URL = process.env.NOTIFY_SLACK_URL
+const NOTIFY_EMAIL = true
+const NOTIFY_EMAIL_API_KEY = process.env.NOTIFY_EMAIL_API_KEY
+const NOTIFY_EMAIL_DOMAIN = process.env.NOTIFY_EMAIL_DOMAIN
+const NOTIFY_EMAIL_FROM = process.env.NOTIFY_EMAIL_FROM
+const NOTIFY_EMAIL_TO = process.env.NOTIFY_EMAIL_TO
+
+const mg = mailgun({apiKey: NOTIFY_EMAIL_API_KEY, domain: NOTIFY_EMAIL_DOMAIN})
 
 async function monitor() {
     return new Promise(async (resolve) => {
@@ -23,7 +34,7 @@ async function monitor() {
                 if (moment < Date.now() - 30*1000) {
                     notify(`🚨🚨🚨 [substrate-monitor] Block Production on Flint halted! Connected to ${SUBSTRATE_NODE_WS}`)
                 }
-            })
+            }) as any
         } catch (e) {
             notify(`🚨🚨🚨 [substrate-monitor] Error subscribing timestamp from node ${SUBSTRATE_NODE_WS}: ${e}`)
 
@@ -37,7 +48,12 @@ async function monitor() {
 
 async function main() {
     while (true) {
-        await monitor()
+        try {
+            await monitor()
+        } catch (e) {
+            // just log the error, can't do much here to recover
+            console.error(e)
+        }
 
         await sleep(60*1000)
     }
@@ -46,16 +62,30 @@ async function main() {
 main()
 
 async function notify(message: string) {
-    const res = await fetch(SLACK_URL, {
-        method: "POST",
-        body:    JSON.stringify({
-            "text": message,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-    })
+    console.log(message)
 
-    if (res.status != 200) {
-        throw new Error(`Error sending Slack Notification, received status ${res.status} ${res.statusText} and message ${await res.text()}`)
+    if (NOTIFY_SLACK) {
+        const res = await fetch(NOTIFY_SLACK_URL, {
+            method: "POST",
+            body:    JSON.stringify({
+                "text": message,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (res.status != 200) {
+            throw new Error(`Error sending Slack Notification, received status ${res.status} ${res.statusText} and message ${await res.text()}`)
+        }
+    }
+
+    if (NOTIFY_EMAIL) {
+        const data = {
+            from: NOTIFY_EMAIL_FROM,
+            to: NOTIFY_EMAIL_TO,
+            subject: message,
+            text: message,
+        };
+        await mg.messages().send(data)
     }
 }
 
