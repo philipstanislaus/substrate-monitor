@@ -6,6 +6,7 @@ import * as mailgun from 'mailgun-js'
 require('dotenv').config()
 
 const SUBSTRATE_NODE_WS = process.env.SUBSTRATE_NODE_WS
+const NOTIFY_LAST_BLOCK_OLDER_MINS = Number(process.env.NOTIFY_LAST_BLOCK_OLDER_MINS) || 30
 const NOTIFY_SLACK = process.env.NOTIFY_SLACK === 'true'
 const NOTIFY_SLACK_URL = process.env.NOTIFY_SLACK_URL
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL === 'true'
@@ -15,6 +16,10 @@ const NOTIFY_EMAIL_FROM = process.env.NOTIFY_EMAIL_FROM
 const NOTIFY_EMAIL_TO = process.env.NOTIFY_EMAIL_TO
 
 const mg = mailgun({apiKey: NOTIFY_EMAIL_API_KEY, domain: NOTIFY_EMAIL_DOMAIN})
+
+// durations in milliseconds
+const secs = 1000
+const mins = 60*secs
 
 async function monitor() {
     return new Promise(async (resolve) => {
@@ -30,8 +35,8 @@ async function monitor() {
             unsub = await api.query.timestamp.now((moment: any) => {
                 console.log(`The last block has a timestamp of ${moment}, now is ${Date.now()}`)
 
-                // if there was no more block for 30 seconds => notification
-                if (moment < Date.now() - 30*1000) {
+                // if there was no more block for 30 minutes => notification
+                if (moment < Date.now() - NOTIFY_LAST_BLOCK_OLDER_MINS*mins) {
                     notify(`🚨🚨🚨 [substrate-monitor] Block Production on Flint halted! Connected to ${SUBSTRATE_NODE_WS}`)
                 }
             }) as any
